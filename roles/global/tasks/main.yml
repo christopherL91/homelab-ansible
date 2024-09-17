@@ -1,0 +1,54 @@
+---
+- name: Install common software
+  apt:
+    pkg: "{{ packages }}"
+    state: present
+- name: Enable user to use pc/sc using polkit
+  ansible.builtin.copy:
+    src: files/03-polkit-pcscd.rules
+    dest: /usr/share/polkit-1/rules.d/03-polkit-pcscd.rules
+    mode: "0644"
+    owner: root
+    group: root
+- name: Enable PC/SC service
+  ansible.builtin.service:
+    name: pcscd
+    state: started
+    enabled: true
+- name: Configure automated security updates
+  block:
+    - name: Create unattended upgrades configuration file
+      ansible.builtin.blockinfile:
+        dest: /etc/apt/apt.conf.d/20auto-upgrades
+        block: |
+          APT::Periodic::Update-Package-Lists "1";
+          APT::Periodic::Unattended-Upgrade "1";
+        marker: "// {mark} ANSIBLE MANAGED BLOCK - unattended_upgrades settings"
+        create: true
+        mode: "0644"
+        owner: root
+        group: root
+    - name: Enable automated reboots
+      ansible.builtin.blockinfile:
+        dest: /etc/apt/apt.conf.d/50unattended-upgrades
+        block: |
+          Unattended-Upgrade::Automatic-Reboot "true";
+          Unattended-Upgrade::Automatic-Reboot-Time "{{ reboot_time }}";
+        marker: "// {mark} ANSIBLE MANAGED BLOCK - unattended_upgrades settings"
+        create: true
+        mode: "0644"
+        owner: root
+        group: root
+    - name: Dpkg reconfigure
+      ansible.builtin.command:
+        cmd: dpkg-reconfigure -f noninteractive unattended-upgrades
+    - name: Configure updates installation timing
+      ansible.builtin.lineinfile:
+        path: /lib/systemd/system/apt-daily-upgrade.timer
+        regexp: "^OnCalendar"
+        line: OnCalendar=*-*-* {{ install_time }}
+    - name: Configure updates installation timing offset
+      ansible.builtin.lineinfile:
+        path: "/lib/systemd/system/apt-daily-upgrade.timer"
+        regexp: "^RandomizedDelaySec"
+        line: "RandomizedDelaySec={{ reboot_offset}}"

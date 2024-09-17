@@ -1,0 +1,10 @@
+- name: Ubuntu Server
+  hosts: all
+  remote_user: lillt
+  become_method: sudo
+  become: true
+  vars_files:
+    - vars.yml
+  roles:
+    - global
+    - ssh

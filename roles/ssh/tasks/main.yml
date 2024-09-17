@@ -1,0 +1,54 @@
+---
+- name: Set ssh banner
+  ansible.builtin.copy:
+    src: sshd-banner
+    dest: /etc/ssh/sshd-banner
+    owner: root
+    group: root
+    mode: "0644"
+- name: Set motd
+  ansible.builtin.copy:
+    src: motd.sh
+    dest: /etc/profile.d/motd.sh
+    owner: root
+    group: root
+    mode: "0644"
+- name: Remove default host files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  with_fileglob: /etc/ssh/ssh_host_*
+- name: Generate new ssh host files
+  ansible.builtin.command: ssh-keygen -q -t ecdsa25519 -f /etc/ssh/ssh_host_ecdsa_key -C "" -N ""
+  args:
+    creates: /etc/ssh/ssh_host_ed25519_key
+- name: Copy sshd config
+  ansible.builtin.copy:
+    src: sshd_config
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0644"
+- name: Copy fail2ban config file
+  ansible.builtin.copy:
+    src: sshd-jail.conf
+    dest: /etc/fail2ban/jail.d/sshd-jail.conf
+    owner: root
+    group: root
+    mode: "0644"
+- name: Enable fail2ban service on boot
+  ansible.builtin.service:
+    name: fail2ban
+    enabled: true
+- name: Disable dynamic MOTD
+  community.general.pamd:
+    name: sshd
+    type: session
+    control: optional
+    module_path: pam_motd.so
+    state: absent
+- name: Restart sshd
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+    enabled: true

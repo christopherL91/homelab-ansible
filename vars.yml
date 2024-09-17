@@ -1,0 +1,19 @@
+packages:
+  - software-properties-common
+  - build-essential
+  - curl
+  - wget
+  - pcscd
+  - pcsc-tools
+  - yubikey-manager
+  - fail2ban
+  - opensc-pkcs11
+  - pcscd
+  - sssd
+  - libpam-sss
+  - neovim
+  - python3-neovim
+  - git
+  - update-notifier-common
+  - opensc
+  - neofetch
